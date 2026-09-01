@@ -722,23 +722,9 @@
                 }
             }
 
-            playCorrectSound() {
-                this.initAudio();
-                const now = this.audioCtx.currentTime;
-                const tones = [523.25, 659.25, 783.99]; 
-                
-                tones.forEach((freq, idx) => {
-                    const osc = this.audioCtx.createOscillator();
-                    const gain = this.audioCtx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, now + idx * 0.2);
-                    gain.gain.setValueAtTime(0.1, now + idx * 0.2);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.2 + 0.6);
-                    osc.connect(gain);
-                    gain.connect(this.audioCtx.destination);
-                    osc.start(now + idx * 0.2);
-                    osc.stop(now + idx * 0.2 + 0.6);
-                });
+            playAudio(fileName) {
+                const audio = new Audio(fileName);
+                audio.play().catch(err => console.log("오디오 에러:", err));
             }
 
             playWrongSound() {
@@ -755,39 +741,6 @@
                 gain.connect(this.audioCtx.destination);
                 osc.start(now);
                 osc.stop(now + 0.3);
-            }
-
-            playRattleSound() {
-                this.initAudio();
-                const now = this.audioCtx.currentTime;
-                for(let i=0; i<4; i++) {
-                    const osc = this.audioCtx.createOscillator();
-                    const gain = this.audioCtx.createGain();
-                    const t = now + (Math.random() * 0.05); 
-                    osc.frequency.value = 800 + Math.random() * 1000;
-                    osc.type = 'triangle';
-                    gain.gain.setValueAtTime(0.1, t);
-                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05); 
-                    osc.connect(gain);
-                    gain.connect(this.audioCtx.destination);
-                    osc.start(t);
-                    osc.stop(t + 0.05);
-                }
-            }
-
-            playStepSound() {
-                this.initAudio();
-                const osc = this.audioCtx.createOscillator();
-                const gain = this.audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(500, this.audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(800, this.audioCtx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.15);
-                osc.connect(gain);
-                gain.connect(this.audioCtx.destination);
-                osc.start();
-                osc.stop(this.audioCtx.currentTime + 0.15);
             }
 
             triggerShake() {
@@ -956,6 +909,8 @@
                 this.isProcessing = true;
                 this.initAudio();
 
+                this.playAudio('dice.mp3');
+
                 const diceContainer = document.getElementById('dice-container');
                 diceContainer.classList.add('rolling');
                 
@@ -964,7 +919,6 @@
                     d1 = Math.floor(Math.random() * 6) + 1;
                     d2 = Math.floor(Math.random() * 6) + 1;
                     this.drawDiceFaces(d1, d2);
-                    if(i % 3 === 0) this.playRattleSound(); 
                     await new Promise(r => setTimeout(r, 80));
                 }
                 
@@ -1007,7 +961,9 @@
                         }
                     }
                     this.updateTokenPosition(tokenEl, player.pos, player.id);
-                    this.playStepSound();
+                    
+                    this.playAudio('step.mp3'); 
+                    
                     await new Promise(r => setTimeout(r, 300));
                 }
                 this.handleTile(player);
@@ -1195,7 +1151,7 @@
             resolveQuiz(player, tileData, mode, isCorrect, owner, correctAnswer) {
                 if (mode === 'buy') {
                     if (isCorrect) {
-                        this.playCorrectSound();
+                        this.playAudio('land.mp3');
                         this.triggerConfetti();
                         player.money -= tileData.price;
                         tileData.owner = player.id;
@@ -1215,7 +1171,7 @@
                 } else if (mode === 'toll') {
                     let cost = tileData.price;
                     if (isCorrect) {
-                        this.playCorrectSound();
+                        this.playAudio('land.mp3');
                         this.triggerConfetti();
                         this.showMessage("정답! 👍", `잘했어! 통행료(${cost}달란트)만 낼게.`, () => {
                             this.payToll(player, owner, cost);
@@ -1230,7 +1186,7 @@
                     }
                 } else if (mode === 'upgrade') {
                     if (isCorrect) {
-                        this.playCorrectSound();
+                        this.playAudio('land.mp3');
                         this.triggerConfetti();
                         tileData.price = Math.floor(tileData.price * 1.5);
                         tileData.level = (tileData.level || 0) + 1; 
@@ -1268,9 +1224,11 @@
             }
 
             endGame(winner) {
+                this.playAudio('win.mp3'); 
+
                 let msg = "🎉 와아! 게임 끝! 🎉\n\n";
                 if (winner) {
-                    msg += `최후의 생존자 [${winner.name}] 님이 우승!! 🏆`;
+                    msg += `최후의 생존자 [${winner.name}] 가족이 우승했어! 🏆`;
                 } else {
                     let maxAssets = -99999;
                     let bestPlayer = null;
@@ -1286,11 +1244,13 @@
                             bestPlayer = p;
                         }
                     });
-                    msg += `\n오늘의 1등은... [${bestPlayer.name}] !! 축하해, 한게임 더? 많이 할 수록 우리 믿음에 대해서 잘 알아갈 수 있어! 🏆`;
+                    msg += `\n오늘의 1등은... [${bestPlayer.name}] 축하해~!!🏆 한 게임 더? 많이 할 수록 우리 믿음에 대해서 잘 알아갈 수 있어^^`;
                 }
                 
-                alert(msg);
-                location.reload();
+                setTimeout(() => {
+                    alert(msg);
+                    location.reload();
+                }, 500); 
             }
 
             checkNextTurn() {
