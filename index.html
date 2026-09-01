@@ -266,7 +266,8 @@
 
         .modal {
             display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center; backdrop-filter: blur(4px);
+            background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center; 
+            /* backdrop-filter: blur(4px); 제거하여 모바일 과부하 방지 */
         }
         .modal-content {
             background-color: white; border-radius: 20px;
@@ -723,19 +724,15 @@
             }
 
             playAudio(fileName) {
-                // 오디오 캐시를 저장할 공간이 없으면 생성
                 if (!this.audioCache) {
                     this.audioCache = {};
                 }
-                
-                // 해당 파일이 캐시에 없으면 한 번만 생성하여 저장 (Preload)
                 if (!this.audioCache[fileName]) {
                     this.audioCache[fileName] = new Audio(fileName);
-                    this.audioCache[fileName].preload = 'auto'; // 미리 로드하여 지연 방지
+                    this.audioCache[fileName].preload = 'auto'; 
                 }
-                
                 const audio = this.audioCache[fileName];
-                audio.currentTime = 0; // 재생 위치를 0초로 초기화하여 연속 재생 시 버벅거림 방지
+                audio.currentTime = 0; 
                 audio.play().catch(err => console.log("오디오 에러:", err));
             }
 
@@ -753,6 +750,39 @@
                 gain.connect(this.audioCtx.destination);
                 osc.start(now);
                 osc.stop(now + 0.3);
+            }
+
+            playRattleSound() {
+                this.initAudio();
+                const now = this.audioCtx.currentTime;
+                for(let i=0; i<4; i++) {
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    const t = now + (Math.random() * 0.05); 
+                    osc.frequency.value = 800 + Math.random() * 1000;
+                    osc.type = 'triangle';
+                    gain.gain.setValueAtTime(0.1, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05); 
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.05);
+                }
+            }
+
+            playStepSound() {
+                this.initAudio();
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(500, this.audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(800, this.audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+                osc.start();
+                osc.stop(this.audioCtx.currentTime + 0.15);
             }
 
             triggerShake() {
@@ -921,8 +951,6 @@
                 this.isProcessing = true;
                 this.initAudio();
 
-                this.playAudio('dice.mp3');
-
                 const diceContainer = document.getElementById('dice-container');
                 diceContainer.classList.add('rolling');
                 
@@ -931,6 +959,7 @@
                     d1 = Math.floor(Math.random() * 6) + 1;
                     d2 = Math.floor(Math.random() * 6) + 1;
                     this.drawDiceFaces(d1, d2);
+                    if(i % 3 === 0) this.playRattleSound(); 
                     await new Promise(r => setTimeout(r, 80));
                 }
                 
@@ -974,7 +1003,7 @@
                     }
                     this.updateTokenPosition(tokenEl, player.pos, player.id);
                     
-                    this.playAudio('step.mp3'); 
+                    this.playStepSound(); 
                     
                     await new Promise(r => setTimeout(r, 300));
                 }
@@ -1079,7 +1108,7 @@
                             const tokenEl = document.getElementById(`token-${player.id}`);
                             player.pos = targetIdx;
                             this.updateTokenPosition(tokenEl, player.pos, player.id);
-                            this.playAudio('step.mp3'); // 수정된 부분
+                            this.playStepSound();
                             this.handleTile(player);
                         });
                     } else {
@@ -1088,7 +1117,7 @@
                             player.pos = 0;
                             player.money += 500; 
                             this.updateTokenPosition(tokenEl, 0, player.id);
-                            this.playAudio('step.mp3'); // 수정된 부분
+                            this.playStepSound();
                             this.checkNextTurn();
                         });
                     }
@@ -1097,7 +1126,7 @@
                         const tokenEl = document.getElementById(`token-${player.id}`);
                         player.pos = 5; 
                         this.updateTokenPosition(tokenEl, player.pos, player.id);
-                        this.playAudio('step.mp3'); // 수정된 부분
+                        this.playStepSound();
                         player.skipTurn = 1;
                         this.lastDiceDouble = false;
                         this.checkNextTurn();
@@ -1256,7 +1285,7 @@
                             bestPlayer = p;
                         }
                     });
-                    msg += `\n오늘의 1등은... [${bestPlayer.name}] 축하해~!!🏆 한 게임 더? 많이 할 수록 우리 믿음에 대해서 잘 알아갈 수 있어^^`;
+                    msg += `\n오늘의 1등은... [${bestPlayer.name}] 가족!! 축하해! 🏆 한게임 더? 많이 할 수록 우리 믿음에 대해서 잘 알아갈 수 있어^^`;
                 }
                 
                 setTimeout(() => {
@@ -1385,4 +1414,3 @@
     </script>
 </body>
 </html>
-
