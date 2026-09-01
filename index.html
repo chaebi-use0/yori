@@ -1270,7 +1270,7 @@
             endGame(winner) {
                 let msg = "🎉 와아! 게임 끝! 🎉\n\n";
                 if (winner) {
-                    msg += `최후의 생존자 [${winner.name}] 가족이 우승했어! 🏆`;
+                    msg += `최후의 생존자 [${winner.name}] 님이 우승!! 🏆`;
                 } else {
                     let maxAssets = -99999;
                     let bestPlayer = null;
@@ -1286,7 +1286,7 @@
                             bestPlayer = p;
                         }
                     });
-                    msg += `\n오늘의 1등은... [${bestPlayer.name}] 가족!! 축하해! 🏆`;
+                    msg += `\n오늘의 1등은... [${bestPlayer.name}] !! 축하해, 한게임 더? 많이 할 수록 우리 믿음에 대해서 잘 알아갈 수 있어! 🏆`;
                 }
                 
                 alert(msg);
