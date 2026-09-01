@@ -1,1 +1,1419 @@
+네, 이전에 안내해 드린 모든 변경 사항(추석 테마 CSS, 텍스트, 맵 데이터, 소요리문답 퀴즈, 특수 칸 이벤트)을 하나로 통합한 최종 완성 코드입니다.
 
+아래 코드를 복사하여 GitHub의 `index.html` 파일에 그대로 붙여넣고 저장(Commit changes)하시면 됩니다.
+
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>교리 마블 (추석 에디션)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gamja+Flower&family=Black+Han+Sans&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #D84315; /* 가을 감색 */
+            --board-bg: #FFF8E1;
+            --accent-color: #FFB300; /* 보름달 색 */
+            --current-turn-color: #D84315;
+            --current-turn-bg: #FFE0B2;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Jua', sans-serif; }
+
+        body {
+            background-color: #FFCC80;
+            background-image: radial-gradient(#fff 10%, transparent 10%);
+            background-size: 20px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.5s ease;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 800px;
+            height: 98vh;
+            background-color: white;
+            border-radius: 25px;
+            border: 8px solid var(--current-turn-color);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
+            position: relative;
+            transition: border-color 0.5s ease;
+            overflow: hidden;
+        }
+
+        #status-bar {
+            height: 50px;
+            background: var(--current-turn-color);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 1.3rem;
+            transition: background-color 0.5s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        #top-message {
+            background-color: var(--current-turn-bg);
+            color: #546E7A;
+            text-align: center;
+            padding: 10px 0;
+            font-family: 'Gamja Flower', cursive;
+            font-size: 1.8rem;
+            line-height: 1.3;
+            text-shadow: 1px 1px 0 rgba(255,255,255,0.8);
+            transition: background-color 0.5s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80px;
+            flex-shrink: 0;
+        }
+
+        #board-wrapper {
+            flex: 1; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 5px 10px;
+            overflow: hidden;
+            background-color: var(--current-turn-bg);
+            transition: background-color 0.5s ease;
+        }
+
+        #board {
+            width: 100%;
+            max-width: 58vh; 
+            aspect-ratio: 1 / 1;
+            background-color: var(--board-bg);
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 3px;
+            border-radius: 15px;
+            box-shadow: 0 8px 0 rgba(0,0,0,0.1);
+            padding: 3px;
+        }
+
+        #mid-controls {
+            background-color: var(--current-turn-bg);
+            padding: 5px 20px;
+            display: flex;
+            justify-content: flex-end; 
+            transition: background-color 0.5s ease;
+            flex-shrink: 0;
+        }
+
+        .rules-btn {
+            background-color: #607D8B;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #455A64;
+            font-family: 'Jua';
+            transition: transform 0.1s;
+        }
+        .rules-btn:active { transform: translateY(3px); box-shadow: none; }
+
+        .tile {
+            background-color: #fff;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #ddd;
+            transition: all 0.3s ease;
+            background-image: url('chuseok_bg.jpg'); 
+            background-size: 500% 300%;
+            background-repeat: no-repeat;
+        }
+
+        .tile.unowned { filter: grayscale(100%); opacity: 0.9; }
+        .tile.owned { filter: grayscale(0%); opacity: 1; border-width: 4px; z-index: 1; }
+        .tile.special-tile { filter: grayscale(0%); }
+
+        .bg-pentateuch { background-position: 0% 0%; }
+        .bg-history    { background-position: 25% 0%; }
+        .bg-minor      { background-position: 50% 0%; }
+        .bg-major      { background-position: 75% 0%; }
+        .bg-poetry     { background-position: 100% 0%; }
+        .bg-gospels    { background-position: 0% 50%; }
+        .bg-acts       { background-position: 25% 50%; }
+        .bg-revelation { background-position: 50% 50%; }
+        .bg-pauline    { background-position: 75% 50%; }
+        .bg-general    { background-position: 100% 50%; }
+        .bg-start      { background-position: 0% 100%; }
+        .bg-wilderness { background-position: 25% 100%; }
+        .bg-sharing    { background-position: 50% 100%; }
+        .bg-key        { background-position: 75% 100%; }
+        .bg-rest       { background-position: 100% 100%; }
+
+        .tile-name { 
+            position: absolute; top: 7%; left: 50%; transform: translateX(-50%);
+            font-size: 0.65rem; font-weight: bold; color: #3E2723;
+            text-shadow: 1px 1px 0 rgba(255,255,255,0.8); white-space: nowrap; z-index: 2;
+            padding: 1px 4px; border-radius: 4px; background: rgba(255,255,255,0.6);
+        }
+        
+        .tile-price { 
+            position: absolute; bottom: 5%; left: 50%; transform: translateX(-50%);
+            font-size: 0.6rem; color: white; background: rgba(0,0,0,0.6);
+            padding: 1px 5px; border-radius: 10px; z-index: 2;
+            transition: background-color 0.3s;
+        }
+
+        .pot-amount {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(255, 215, 0, 0.9); color: #E65100;
+            padding: 2px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 3; display: none;
+        }
+
+        .player-token {
+            min-width: 44px; height: 34px; padding: 0 10px;
+            border-radius: 20px; border: 3px solid white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: absolute; z-index: 20;
+            display: flex; justify-content: center; align-items: center;
+            color: white; font-size: 0.9rem;
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.3); white-space: nowrap;
+            transform: translate(-50%, -50%); 
+        }
+
+        #center-panel {
+            grid-column: 2 / span 4; grid-row: 2 / span 4;
+            background-color: rgba(255, 253, 231, 0.95);
+            border-radius: 20px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center;
+            box-shadow: inset 0 0 15px rgba(255, 193, 7, 0.2);
+            z-index: 5;
+            border: 4px dashed #FFD54F;
+        }
+
+        .center-title {
+            font-family: 'Black Han Sans', sans-serif;
+            font-size: 2.5rem;
+            line-height: 1.1;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #FF5252, #FFC107, #2196F3);
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 3px 3px 0px rgba(0,0,0,0.1);
+            transform: rotate(-3deg);
+            animation: party 1.5s infinite alternate;
+        }
+        @keyframes party {
+            from { transform: rotate(-3deg) scale(1); }
+            to { transform: rotate(3deg) scale(1.05); }
+        }
+
+        #dice-container { 
+            display: flex; gap: 15px; margin: 5px 0; cursor: pointer; padding: 10px;
+            background: rgba(255,255,255,0.6); border-radius: 20px; transition: transform 0.1s;
+        }
+        #dice-container:active { transform: scale(0.95); }
+
+        .die {
+            width: 50px; height: 50px; background: white;
+            border-radius: 12px; border: 2px solid #eee;
+            box-shadow: 0 5px 0 #ccc, 0 10px 10px rgba(0,0,0,0.1);
+            display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+            padding: 4px; gap: 3px;
+        }
+        .die .dot { width: 9px; height: 9px; background-color: #5D4037; border-radius: 50%; align-self: center; justify-self: center; }
+        .rolling .die { animation: shake 0.3s infinite; }
+
+        #game-log {
+            width: 90%; height: 50px; background: white;
+            border: 2px solid #FFECB3; border-radius: 10px; padding: 8px;
+            overflow-y: auto; font-size: 0.9rem; text-align: left;
+            margin-top: 10px; color: #5D4037;
+        }
+
+        #player-panel {
+            height: 130px; background-color: #FFF3E0;
+            display: flex; overflow-x: auto; flex-shrink: 0; border-top: 4px solid #FFE0B2;
+            position: relative;
+        }
+
+        .player-card {
+            flex: 1; min-width: 100px;
+            border-right: 2px dashed #FFCC80; padding: 10px; color: #5D4037;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0.6; transition: 0.3s; position: relative;
+        }
+        .player-card.bankrupt { opacity: 0.3; background-color: #cfd8dc; filter: grayscale(100%); }
+        .player-card.active { 
+            opacity: 1; background: white; transform: scale(1.05); z-index: 10;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            border-radius: 10px 10px 0 0;
+            border: 2px solid var(--accent-color); border-bottom: none;
+        }
+        .player-name { font-size: 1.1rem; margin-bottom: 5px; }
+        .player-money { font-size: 1.2rem; color: #E65100; font-family: 'Gamja Flower'; }
+        .player-level-badge { font-size: 0.8rem; background: #eee; padding: 2px 6px; border-radius: 4px; margin-top: 4px; }
+
+        .modal {
+            display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center; backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background-color: white; border-radius: 20px;
+            width: 90%; max-width: 450px; text-align: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 0; overflow: hidden; max-height: 80vh; overflow-y: auto;
+        }
+        .modal-header { background-color: #FFB74D; padding: 15px; color: white; font-size: 1.5rem; font-weight: bold; }
+        .modal-body { padding: 25px; }
+        .quiz-badge {
+            display: inline-block; background-color: #E0F7FA; color: #006064;
+            padding: 5px 12px; border-radius: 15px; font-size: 1rem;
+            margin-bottom: 10px; font-weight: bold;
+        }
+        .quiz-text { font-size: 1.4rem; color: #333; line-height: 1.4; margin-bottom: 20px; }
+        
+        .rules-text { font-size: 1rem; text-align: left; line-height: 1.6; color: #444; }
+        .rules-text h4 { color: #E65100; margin-bottom: 5px; margin-top: 15px; }
+
+        .btn { 
+            font-family: 'Jua'; font-size: 1.2rem; border-radius: 12px;
+            padding: 12px; margin: 5px 0; width: 100%; cursor: pointer;
+            border: none; transition: 0.2s;
+        }
+        .btn-yes { background-color: #FF7043; color: white; box-shadow: 0 4px 0 #D84315; }
+        .btn-yes:active { transform: translateY(4px); box-shadow: none; }
+        .btn-quiz { background-color: white; border: 2px solid #FFCC80; color: #5D4037; }
+        .btn-quiz:hover { background-color: #FFF3E0; }
+        .btn-quiz:active { background-color: #FFE0B2; }
+
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .shake-effect { animation: shake 0.5s; }
+        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
+        .confetti { position: absolute; width: 10px; height: 10px; background-color: #f00; top: 50%; left: 50%; opacity: 0; z-index: 1000; pointer-events: none; }
+
+        #setup-screen {
+            background: #8D6E63;
+            background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E");
+        }
+        .setup-btn {
+            background: #FFCA28; color: #3E2723; border-radius: 15px;
+            font-size: 1.5rem; padding: 15px 40px; margin: 10px;
+            border: none; cursor: pointer; box-shadow: 0 6px 0 #FF6F00;
+        }
+        .setup-btn:active { box-shadow: 0 2px 0 #FF6F00; transform: translateY(4px); }
+        
+        .player-input-group {
+            background: #FFFDE7; border: 3px solid #FFB74D; border-radius: 10px;
+            margin: 10px auto; padding: 10px; width: 90%; max-width: 350px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .name-input { border: none; background: transparent; font-family: 'Jua'; font-size: 1.2rem; width: 60%; text-align: left; outline: none; }
+        .level-select { width: 40%; padding: 5px; border-radius: 5px; border: 2px solid #FFCC80; font-family: 'Jua'; font-size: 1rem; color: #5D4037; }
+        .install-guide { margin-top: 30px; font-size: 1rem; color: #FFECB3; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; text-align: left; max-width: 90%; }
+        .install-guide h4 { color: #FFCA28; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="status-bar">
+            <span>🚀 교리 마블_추석 에디션</span>
+            <span id="turn-indicator" style="font-size: 1.2rem;">대기 중...</span>
+        </div>
+
+        <div id="top-message">
+            풍성한 한가위! 🌕 <br> 가족들과 함께 교리 마블 한 판 어때요?
+        </div>
+
+        <div id="board-wrapper">
+            <div id="board">
+                <div id="center-panel">
+                    <div class="center-title">
+                        추석맞이<br>교리 마블
+                    </div>
+                    <div id="dice-container" onclick="if(typeof game !== 'undefined' && game) game.rollDice()">
+                        <div class="die" id="die1"></div>
+                        <div class="die" id="die2"></div>
+                    </div>
+                    <div id="game-log">주사위를 굴려주세요!</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="mid-controls">
+            <button class="rules-btn" onclick="document.getElementById('rules-modal').style.display='flex'">📜 게임 규칙</button>
+        </div>
+
+        <div id="player-panel"></div>
+    </div>
+
+    <div id="setup-screen">
+        <div id="setup-step-1" style="text-align: center;">
+            <h1 style="font-size: 3.5rem; margin-bottom: 10px; color: #FFECB3; text-shadow: 3px 3px 0 #3E2723;">교리 마블</h1>
+            <p style="font-size: 1.5rem; margin-bottom: 30px; color: #FFCC80;">함께 할 가족은 몇 명인가요?</p>
+            <div>
+                <button class="setup-btn" onclick="setupNames(2)">2명</button>
+                <button class="setup-btn" onclick="setupNames(3)">3명</button>
+                <button class="setup-btn" onclick="setupNames(4)">4명</button>
+            </div>
+            
+            <div class="install-guide">
+                <h4>📲 홈 화면에 추가하고 앱처럼 즐기세요!</h4>
+                <p><strong>아이폰(Safari):</strong> 하단 '공유' 버튼 → '홈 화면에 추가' 선택</p>
+                <p><strong>안드로이드(Chrome):</strong> 상단 메뉴(⋮) → '앱 설치' 또는 '홈 화면에 추가' 선택</p>
+            </div>
+        </div>
+        <div id="setup-step-2" style="display: none; text-align: center;">
+            <h1 style="color: #FFECB3;">가족 정보를 입력해줘!</h1>
+            <div id="name-inputs-container"></div>
+            <button class="setup-btn" onclick="startGameWithNames()" style="margin-top: 20px;">출발! 🚌</button>
+        </div>
+    </div>
+
+    <!-- 퀴즈 모달 -->
+    <div id="quiz-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #4FC3F7;">
+                📖 <span id="quiz-category"></span> 퀴즈
+            </div>
+            <div class="modal-body">
+                <div id="quiz-context" class="quiz-badge">상황 설명</div>
+                <p id="quiz-question" class="quiz-text">질문 내용</p>
+                <div id="quiz-options"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 알림 모달 -->
+    <div id="action-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" id="action-title">알림 🔔</div>
+            <div class="modal-body">
+                <p id="action-msg" class="quiz-text">메시지 내용</p>
+                <button class="btn btn-yes" id="btn-confirm">알겠어요!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 규칙 모달 -->
+    <div id="rules-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #8D6E63;">📜 게임 규칙</div>
+            <div class="modal-body rules-text">
+                <h4>1. 게임 목표 (종료 조건)</h4>
+                <p>
+                    1. <strong>모든 땅 개척:</strong> 모든 땅의 주인이 정해진 후, 누군가 출발점을 통과하면 게임 끝! (가장 부자가 승리)<br>
+                    2. <strong>파산:</strong> 1명 빼고 모두 파산하면 게임 끝! (최후의 1인이 승리)
+                </p>
+                <h4>2. 이동 및 퀴즈</h4>
+                <p>주사위를 굴려 이동합니다. 빈 땅에 도착하면 <strong>내 난이도에 맞는 퀴즈</strong>를 풀고 땅을 살 수 있습니다.</p>
+                <h4>3. 통행료와 강화</h4>
+                <p>다른 가족의 땅에 도착하면 퀴즈 대결! (정답: 통행료만 지불 / 오답: 2배 지불)<br>
+                내 땅에 다시 도착하면? 퀴즈를 맞춰 <strong>통행료를 1.5배</strong> 올릴 수 있습니다!</p>
+                <h4>4. 특수 칸</h4>
+                <p><strong>귀성길 정체:</strong> 1번 쉽니다. (더블 나오면 탈출!)<br>
+                <strong>송편 나눔:</strong> 돈을 기부하거나, 쌓인 돈을 가져갑니다.<br>
+                <strong>보름달 소원:</strong> 깜짝 미션이나 선물이 기다립니다.</p>
+                <button class="btn btn-yes" onclick="document.getElementById('rules-modal').style.display='none'">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BOARD_SIZE = 20;
+        
+        const mapData = [
+            { id: 0, name: "출발", type: 0, price: 0, bgClass: "bg-start" },
+            { id: 1, name: "1~10문", type: 1, price: 150, category: "q01_10", bgClass: "bg-pentateuch", level: 0 },
+            { id: 2, name: "11~20문", type: 1, price: 180, category: "q11_20", bgClass: "bg-history", level: 0 },
+            { id: 3, name: "보름달 소원", type: 2, price: 0, bgClass: "bg-key" },
+            { id: 4, name: "21~30문", type: 1, price: 200, category: "q21_30", bgClass: "bg-minor", level: 0 },
+            { id: 5, name: "귀성길 정체", type: 3, price: 0, bgClass: "bg-wilderness" },
+            
+            { id: 6, name: "31~40문", type: 1, price: 220, category: "q31_40", bgClass: "bg-major", level: 0 },
+            { id: 7, name: "41~50문", type: 1, price: 240, category: "q41_50", bgClass: "bg-poetry", level: 0 },
+            { id: 8, name: "보름달 소원", type: 2, price: 0, bgClass: "bg-key" },
+            { id: 9, name: "51~60문", type: 1, price: 260, category: "q51_60", bgClass: "bg-gospels", level: 0 },
+            
+            { id: 10, name: "송편 나눔", type: 4, price: 0, bgClass: "bg-sharing" },
+            { id: 11, name: "61~70문", type: 1, price: 280, category: "q61_70", bgClass: "bg-acts", level: 0 },
+            { id: 12, name: "71~80문", type: 1, price: 300, category: "q71_80", bgClass: "bg-pauline", level: 0 },
+            { id: 13, name: "보름달 소원", type: 2, price: 0, bgClass: "bg-key" },
+            { id: 14, name: "81~90문", type: 1, price: 320, category: "q81_90", bgClass: "bg-general", level: 0 },
+            
+            { id: 15, name: "달맞이 휴식", type: 5, price: 0, bgClass: "bg-rest" },
+            { id: 16, name: "91~100문", type: 1, price: 350, category: "q91_100", bgClass: "bg-revelation", level: 0 },
+            { id: 17, name: "101~107문", type: 1, price: 400, category: "q101_107", bgClass: "bg-pentateuch", level: 0 },
+            { id: 18, name: "보름달 소원", type: 2, price: 0, bgClass: "bg-key" },
+            { id: 19, name: "복습 찬스", type: 1, price: 450, category: "review", bgClass: "bg-gospels", level: 0 }
+        ];
+
+        const quizDatabase = {
+            q01_10: {
+                easy: [
+                    { q: "사람의 제일 되는 목적은 하나님께 영광을 돌리는 것입니다.", a: ["O", "X"], c: 0 },
+                    { q: "창조의 사역은 하나님께서 아무것도 없는 가운데서 만물을 지으신 일입니다.", a: ["O", "X"], c: 0 },
+                    { q: "하나님 한 분 외에 다른 하나님이 또 계십니다.", a: ["O", "X"], c: 1 }
+                ],
+                medium: [
+                    { q: "하나님의 신격에 계신 삼위가 아닌 것은?", a: ["천사", "성부", "성령"], c: 0 },
+                    { q: "성경이 가장 중요하게 가르치는 두 가지는 무엇입니까?", a: ["하나님을 믿는 것과 사람의 의무", "이스라엘의 역사와 율법", "천지창조와 종말"], c: 0 },
+                    { q: "하나님이 어떤 분이신지 설명한 속성이 아닌 것은?", a: ["육체적 한계", "무한한 지혜와 권능", "영원하시고 불변하심"], c: 0 }
+                ],
+                hard: [
+                    { q: "하나님이 사람을 지으실 때 자기의 형상대로 부여하신 세 가지는?", a: ["지식과 의와 거룩함", "사랑과 희락과 화평", "권능과 지혜와 영광"], c: 0 },
+                    { q: "하나님의 작정을 실행하시는 두 가지 사역은 무엇입니까?", a: ["창조와 섭리", "구원과 심판", "율법과 은혜"], c: 0 },
+                    { q: "하나님의 섭리의 사역에 대한 올바른 설명은?", a: ["모든 피조물과 행동을 보존하시며 통치하심", "세상을 창조하신 후 스스로 돌아가게 두심", "오직 인간의 행동만을 간섭하심"], c: 0 }
+                ]
+            },
+            q11_20: {
+                easy: [
+                    { q: "아담이 처음 죄를 범할 때 전 인류가 함께 타락했습니다.", a: ["O", "X"], c: 0 },
+                    { q: "죄는 하나님의 법을 순종함에 부족하거나 어기는 것입니다.", a: ["O", "X"], c: 0 },
+                    { q: "하나님께서는 온 인류가 멸망하도록 그대로 내버려 두셨습니다.", a: ["O", "X"], c: 1 }
+                ],
+                medium: [
+                    { q: "우리의 시조가 본 지위에서 타락하게 된 죄는 무엇입니까?", a: ["금하신 실과를 먹은 것", "동생을 죽인 것", "안식일을 어긴 것"], c: 0 },
+                    { q: "이 타락으로 인하여 인류가 떨어지게 된 지위는 무엇입니까?", a: ["죄와 불행의 상태", "가난과 질병의 상태", "무지와 혼란의 상태"], c: 0 },
+                    { q: "은혜의 언약을 통해 우리를 구원의 자리에 이르게 하시는 분은?", a: ["구속자 (예수 그리스도)", "선지자 엘리야", "천사장 미가엘"], c: 0 }
+                ],
+                hard: [
+                    { q: "사람이 타락한 상태에서 가지는 '원죄'의 요소가 아닌 것은?", a: ["자범죄(실제적인 죄)", "아담의 죄책", "본성의 부패"], c: 0 },
+                    { q: "창조 시 생명의 언약에서 하나님이 사람에게 요구하신 조건은?", a: ["완전한 순종", "매일의 제사", "철저한 회개"], c: 0 },
+                    { q: "타락한 상태에서 인류가 맛보는 불행이 아닌 것은?", a: ["육체적 노동의 피곤함", "하나님과의 교제가 끊어짐", "영원히 지옥의 고통을 받음"], c: 0 }
+                ]
+            },
+            q21_30: {
+                easy: [
+                    { q: "하나님이 선택하신 자들의 유일한 구속자는 예수 그리스도이십니다.", a: ["O", "X"], c: 0 },
+                    { q: "예수님은 사람이 되셨으므로 우리처럼 죄가 있으십니다.", a: ["O", "X"], c: 1 },
+                    { q: "예수님은 동정녀 마리아의 몸에 잉태되어 탄생하셨습니다.", a: ["O", "X"], c: 0 }
+                ],
+                medium: [
+                    { q: "그리스도께서 구속자로서 행하시는 3가지 직분이 아닌 것은?", a: ["사도", "선지자", "왕"], c: 0 },
+                    { q: "그리스도의 높아지심(승귀)에 해당하지 않는 것은?", a: ["십자가의 죽음", "부활하심", "하늘로 올라가심"], c: 0 },
+                    { q: "그리스도의 낮아지심(비하)의 상태에 해당하는 것은?", a: ["비천한 상태에서 율법 아래 복종하심", "세상을 심판하러 오심", "하나님 우편에 앉으심"], c: 0 }
+                ],
+                hard: [
+                    { q: "그리스도께서 제사장의 직분을 어떻게 행하셨습니까?", a: ["단번에 자신을 제물로 드리심", "율법을 새롭게 가르치심", "원수들을 이기심"], c: 0 },
+                    { q: "그리스도가 값 주고 사신 구속을 우리에게 유효하게 적용하시는 분은?", a: ["성령님", "목회자", "천사들"], c: 0 },
+                    { q: "그리스도께서 왕의 직분을 행하시는 모습이 아닌 것은?", a: ["우리의 죄를 대신하여 기도하심", "우리로 하여금 자기에게 복종케 하심", "우리의 모든 원수를 제지하며 이기심"], c: 0 }
+                ]
+            },
+            q31_40: {
+                easy: [
+                    { q: "유효한 부르심을 받은 자들은 이 세상에서 양자됨의 유익을 얻습니다.", a: ["O", "X"], c: 0 },
+                    { q: "거룩하게 하심(성화)은 죽는 순간이 아니라 단번에 완전히 이루어집니다.", a: ["O", "X"], c: 1 },
+                    { q: "신자는 죽을 때에 그 영혼이 즉시 영광 안으로 들어갑니다.", a: ["O", "X"], c: 0 }
+                ],
+                medium: [
+                    { q: "하나님께서 우리의 모든 죄를 용서하시고 의롭게 보시는 은혜의 행위는?", a: ["의롭다 하심 (칭의)", "양자 됨", "거룩하게 하심 (성화)"], c: 0 },
+                    { q: "하나님의 자녀의 수효 가운데 들게 하시는 은혜의 행위는?", a: ["양자 됨", "유효한 부르심", "영화롭게 하심"], c: 0 },
+                    { q: "신자는 부활할 때 심판 날에 공개적으로 어떤 선언을 받습니까?", a: ["죄 없다 하심과 영원한 즐거움", "다시 세상으로 돌아감", "새로운 시험을 통과해야 함"], c: 0 }
+                ],
+                hard: [
+                    { q: "의롭다 하심과 양자됨 등에 수반되는 유익이 아닌 것은?", a: ["세상에서의 부귀영화", "양심의 평안과 기쁨", "하나님의 사랑을 확실히 앎"], c: 0 },
+                    { q: "하나님께서 사람에게 요구하시는 의무는 무엇입니까?", a: ["그의 계시된 뜻에 순종하는 것", "모든 재산을 교회에 바치는 것", "스스로 고행을 실천하는 것"], c: 0 },
+                    { q: "유효한 부르심에서 성령님이 우리의 마음을 깨우쳐 알게 하시는 것은?", a: ["그리스도", "미래의 운명", "율법의 조항들"], c: 0 }
+                ]
+            },
+            q41_50: {
+                easy: [
+                    { q: "하나님께서 순종의 규칙으로 계시하신 도덕법은 십계명에 요약되어 있습니다.", a: ["O", "X"], c: 0 },
+                    { q: "제1계명은 '살인하지 말라'입니다.", a: ["O", "X"], c: 1 },
+                    { q: "제2계명은 우상을 만들지 말고 절하지 말라는 것입니다.", a: ["O", "X"], c: 0 }
+                ],
+                medium: [
+                    { q: "십계명의 요지는 무엇입니까?", a: ["하나님 사랑과 이웃 사랑", "제사 드리는 법", "절기 지키는 법"], c: 0 },
+                    { q: "제1계명(다른 신들을 네게 있게 말라)에서 금하는 것은?", a: ["참 하나님을 부인하고 다른 이에게 경배하는 것", "도둑질 하는 것", "거짓말 하는 것"], c: 0 },
+                    { q: "제2계명을 지키라고 하신 가장 큰 이유는?", a: ["하나님이 질투하시는(열망하시는) 소유주이시기 때문", "건강하게 오래 살게 하시려고", "부자가 되게 하시려고"], c: 0 }
+                ],
+                hard: [
+                    { q: "제1계명 가운데 '내 앞에서'라는 말씀이 특별히 교훈하는 것은?", a: ["하나님이 다른 신 섬기는 것을 불쾌히 내려다보심", "성전 안에서만 예배해야 함", "기도할 때는 반드시 눈을 감아야 함"], c: 0 },
+                    { q: "십계명의 서문이 우리에게 가르치는 바가 아닌 것은?", a: ["하나님은 두려운 심판자이시다", "하나님은 우리의 주님이시다", "하나님은 우리의 구속자이시다"], c: 0 },
+                    { q: "제2계명에서 명하는 바는 무엇입니까?", a: ["말씀으로 정하신 예배와 규례를 순전하게 순종함", "아름다운 예술 작품을 성전에 장식함", "마음속으로만 하나님을 예배함"], c: 0 }
+                ]
+            },
+            q51_60: {
+                easy: [
+                    { q: "제4계명은 안식일을 기억하여 거룩히 지키라는 것입니다.", a: ["O", "X"], c: 0 },
+                    { q: "하나님의 이름을 함부로 농담처럼 불러도 죄가 되지 않습니다.", a: ["O", "X"], c: 1 },
+                    { q: "안식일에는 긍휼을 베푸는 일이나 부득이한 일을 할 수 있습니다.", a: ["O", "X"], c: 0 }
+                ],
+                medium: [
+                    { q: "제3계명(이름을 망령되이 일컫지 말라)에서 명하는 것은?", a: ["하나님의 이름과 규례와 말씀을 거룩히 사용할 것", "성전의 기구들을 깨끗이 닦을 것", "매일 세 번씩 소리 내어 기도할 것"], c: 0 },
+                    { q: "안식일을 거룩하게 지키는 방법이 아닌 초는?", a: ["세상일과 오락을 마음껏 즐김", "종일토록 하나님께 거룩하게 쉼", "온종일을 공적/사적 예배로 사용함"], c: 0 },
+                    { q: "제4계명을 지키라고 하신 이유로 알맞은 것은?", a: ["하나님이 친히 모범을 보이시고 축복하셨으므로", "안식일에 일하면 벌금을 내야 하므로", "건강을 유지하기 위한 생물학적 이유로"], c: 0 }
+                ],
+                hard: [
+                    { q: "신약 시대 그리스도인의 안식일은 언제로 정하셨습니까?", a: ["매주 첫째 날 (부활하신 주일)", "매주 일곱째 날 (토요일)", "매월 초하루"], c: 0 },
+                    { q: "제3계명을 범하는 자들에 대한 하나님의 경고는 무엇입니까?", a: ["공의로우신 심판을 피하지 못하게 하심", "사람들에게 곧바로 미움을 받게 됨", "이 땅에서의 재산을 잃게 됨"], c: 0 },
+                    { q: "제4계명에서 금하는 것에 해당하지 않는 것은?", a: ["말씀을 깊이 묵상하며 쉬는 것", "태만함으로 그 날을 더럽히는 것", "세속적인 일과 오락에 생각과 언어를 쓰는 것"], c: 0 }
+                ]
+            },
+            q61_70: {
+                easy: [
+                    { q: "제5계명은 네 부모를 공경하라는 것입니다.", a: ["O", "X"], c: 0 },
+                    { q: "제6계명(살인하지 말라)은 오직 남의 생명만 잘 보호하면 됩니다.", a: ["O", "X"], c: 1 },
+                    { q: "간음하지 말라는 제7계명은 행동뿐 아니라 생각과 언어도 포함합니다.", a: ["O", "X"], c: 0 }
+                ],
+                medium: [
+                    { q: "제5계명을 지키는 자에게 주신 하나님의 약속은 무엇입니까?", a: ["장수와 번영", "큰 재물", "모든 질병에서의 치유"], c: 0 },
+                    { q: "제7계명 '간음하지 말라'에서 명하는 것은 무엇입니까?", a: ["자신과 이웃의 순결을 보존하는 것", "모든 결혼 생활을 금지하는 것", "마음의 평안만을 유지하는 것"], c: 0 },
+                    { q: "제6계명 '살인하지 말라'에서 명하는 것은?", a: ["모든 합법적 노력으로 생명을 힘써 보존함", "무조건 모든 전쟁에 참여하지 않음", "살인자에게 사적으로 복수함"], c: 0 }
+                ],
+                hard: [
+                    { q: "제5계명에서 '부모'가 상징적으로 포함하는 대상은 누구입니까?", a: ["윗사람, 아랫사람 등 모든 사람의 위치와 관계", "오직 혈연 관계의 육신의 부모", "교회의 목회자와 장로들만"], c: 0 },
+                    { q: "제5계명에서 금하는 것은 무엇입니까?", a: ["각 사람에게 속한 명예와 본분을 소홀히 하는 것", "부모님과 의견이 다를 때 대화하는 것", "자신의 독립된 가정을 꾸리는 것"], c: 0 },
+                    { q: "제6계명에서 금하는 일에 해당하는 것은?", a: ["생명을 불의하게 빼앗거나 해하는 일들", "정당방위로 자신을 보호하는 일", "질병을 치료하기 위해 수술하는 일"], c: 0 }
+                ]
+            },
+            q71_80: {
+                easy: [
+                    { q: "제8계명은 도둑질하지 말라는 것입니다.", a: ["O", "X"], c: 0 },
+                    { q: "제9계명은 이웃을 해하려고 거짓 증거하지 말라는 것입니다.", a: ["O", "X"], c: 0 },
+                    { q: "제10계명은 이웃의 소유를 탐내지 말라는 것입니다.", a: ["O", "X"], c: 0 }
+                ],
+                medium: [
+                    { q: "제10계명에서 금하는 것은 무엇입니까?", a: ["이웃의 소유를 탐내거나 시기하는 것", "열심히 일하여 재산을 늘리는 것", "이웃에게 좋은 물건을 사달라고 부탁하는 것"], c: 0 },
+                    { q: "제8계명에서 명하는 것은 재물과 산업을 어떻게 하라는 것입니까?", a: ["합법적으로 획득하고 증진시킴", "가난한 자의 것을 빼앗아 나눠줌", "욕심 없이 모든 재산을 포기함"], c: 0 },
+                    { q: "제9계명이 명하는 것은 우리와 이웃의 무엇을 증진시키는 것입니까?", a: ["진실함과 명예", "재산과 소득", "육체적 건강"], c: 0 }
+                ],
+                hard: [
+                    { q: "제8계명에서 금하는 것은 무엇입니까?", a: ["이웃의 재물과 산업을 부당하게 방해하는 것", "자신의 재산을 이웃에게 기부하는 것", "정당한 임금을 요구하는 것"], c: 0 },
+                    { q: "제10계명에서 우리 자신의 처지에 대해 가져야 할 올바른 태도는?", a: ["처지에 완전히 만족하며 자비로운 마음을 가짐", "불만을 품고 사회 제도를 개혁하려 함", "현실을 부정하고 도피적인 태도를 취함"], c: 0 },
+                    { q: "제9계명에서 금하는 것에 해당하는 행동은?", a: ["진실함에 해롭거나 명예를 상하게 하는 것", "법정에서 이웃의 잘못을 사실대로 증언하는 것", "비밀을 지키기 위해 침묵하는 것"], c: 0 }
+                ]
+            },
+            q81_90: {
+                easy: [
+                    { q: "사람은 타락한 이후로 아무도 하나님의 계명을 완전히 지킬 수 없습니다.", a: ["O", "X"], c: 0 },
+                    { q: "예수 그리스도를 믿는 믿음은 구원을 얻는 은혜입니다.", a: ["O", "X"], c: 0 },
+                    { q: "기도는 그리스도께서 구속의 유익을 주시기 위한 은혜의 방편이 아닙니다.", a: ["O", "X"], c: 1 }
+                ],
+                medium: [
+                    { q: "그리스도께서 구속의 유익을 전달하기 위해 주신 3가지 통상적인 방편은?", a: ["말씀, 성례, 기도", "헌금, 봉사, 찬양", "방언, 예언, 신유"], c: 0 },
+                    { q: "모든 죄마다 마땅히 받아야 하는 것은 무엇입니까?", a: ["하나님의 진노와 저주", "약간의 육체적 고통", "다음 생애에서의 불행"], c: 0 },
+                    { q: "하나님의 말씀이 구원을 얻게 하는 유효한 방편이 되게 하시는 분은?", a: ["하나님의 영 (성령)", "능력 있는 설교자", "성경을 쓴 저자들"], c: 0 }
+                ],
+                hard: [
+                    { q: "생명에 이르는 참된 회개의 요소가 아닌 것은?", a: ["죄에 대한 형벌의 두려움만 가짐", "자신의 죄를 참되게 느끼고 미워함", "새롭게 순종하기로 굳게 결심함"], c: 0 },
+                    { q: "말씀을 어떻게 읽고 들어야 구원을 얻을 수 있습니까?", a: ["부지런함과 준비와 기도로 주목하며 실천함", "지식적으로 이해하기만 하면 됨", "일주일에 한 번씩만 들으면 됨"], c: 0 },
+                    { q: "어떠한 죄는 본질적으로 다른 죄보다 하나님 보시기에 더 악합니다.", a: ["그렇다 (요소에 따라 다름)", "아니다 (모든 죄는 완전히 똑같다)", "구약시대에만 그랬다"], c: 0 }
+                ]
+            },
+            q91_100: {
+                easy: [
+                    { q: "신약의 성례는 세례와 성찬입니다.", a: ["O", "X"], c: 0 },
+                    { q: "주기도문은 기도의 특별한 지침입니다.", a: ["O", "X"], c: 0 },
+                    { q: "세례는 물을 가지고 성부, 성자, 성령의 이름으로 씻는 표입니다.", a: ["O", "X"], c: 0 }
+                ],
+                medium: [
+                    { q: "주기도문의 서문 '하늘에 계신 우리 아버지여'가 가르치는 기도의 태도는?", a: ["거룩한 공경심과 확신", "두려움과 공포", "자랑과 교만"], c: 0 },
+                    { q: "주님의 성찬을 합당하게 받기 위해 살펴봐야 할 것이 아닌 것은?", a: ["교회에 낸 헌금의 액수", "주님의 몸을 분별하는 지각", "믿음과 회개와 사랑과 복종심"], c: 0 },
+                    { q: "기도는 우리의 소원을 누구의 이름으로 하나님께 고하는 것입니까?", a: ["그리스도의 이름", "자신의 이름", "성도들의 이름"], c: 0 }
+                ],
+                hard: [
+                    { q: "성례가 구원의 유효한 방편이 되는 이유는 무엇입니까?", a: ["그리스도의 축복함과 성령의 역사하심", "집행하는 목회자의 공덕", "물과 포도주 자체에 있는 신비한 힘"], c: 0 },
+                    { q: "세례가 나타내어 인치는 의미가 아닌 것은?", a: ["모든 질병으로부터의 완벽한 면역", "그리스도에게 접붙임 됨", "은혜 언약의 유익에 참여함"], c: 0 },
+                    { q: "세례는 어떤 사람에게 베풀어져야 합니까?", a: ["그리스도를 믿고 복종을 고백하는 자와 그 유아들", "교회에 한 번이라도 참석한 모든 사람", "오직 성인들만 받을 수 있음"], c: 0 }
+                ]
+            },
+            q101_107: {
+                easy: [
+                    { q: "주기도문의 마지막 맺는말은 '아멘'입니다.", a: ["O", "X"], c: 0 },
+                    { q: "우리가 지은 죄는 주님께 회개해도 용서받을 수 없습니다.", a: ["O", "X"], c: 1 },
+                    { q: "우리가 남을 용서할 때 우리 죄의 용서를 담대히 구할 수 있습니다.", a: ["O", "X"], c: 0 }
+                ],
+                medium: [
+                    { q: "넷째 기원 '오늘날 우리에게 일용할 양식을 주옵시고'에서 구하는 것은?", a: ["이 세상의 좋은 것 중 충분한 분깃", "남들보다 훨씬 더 많은 재물", "육신을 버리고 영적인 양식만 구함"], c: 0 },
+                    { q: "여섯째 기원 '우리를 시험에 들게 하지 마옵시고'에서 구하는 것은?", a: ["시험받아 죄 범하지 않게 도우시고 구출하심", "인생의 모든 어려움을 아예 없애주심", "세상의 경쟁에서 이기게 하심"], c: 0 },
+                    { q: "둘째 기원 '당신의 나라가 임하옵시며'에서 멸망하기를 구하는 나라는?", a: ["사단의 나라", "로마 제국", "가난한 나라"], c: 0 }
+                ],
+                hard: [
+                    { q: "첫째 기원 '이름이 거룩히 여김을 받으시오며'의 참된 의미는?", a: ["자기를 나타내시는 일에서 하나님께 영광을 돌리게 하심", "우리 교회의 이름이 세상에 유명해짐", "우리가 세상에서 거룩해 보이게 하심"], c: 0 },
+                    { q: "셋째 기원 '뜻이 하늘에서 이룬 것 같이'에서 우리의 순종의 모델은?", a: ["하늘에서 천사들이 순종하는 모습", "과거 이스라엘 백성들의 모습", "세상 권력자들의 복종"], c: 0 },
+                    { q: "맺는말에서 우리가 '아멘'이라고 하는 뜻은 무엇입니까?", a: ["우리의 기도가 응답될 것을 확신하는 뜻", "기도가 끝났다는 신호", "이제부터 내 마음대로 살겠다는 뜻"], c: 0 }
+                ]
+            },
+            review: {
+                easy: [
+                    { q: "신구약 성경은 우리가 하나님을 즐거워할 유일한 규칙입니다.", a: ["O", "X"], c: 0 },
+                    { q: "우리의 시조 아담은 처음부터 죄인으로 창조되었습니다.", a: ["O", "X"], c: 1 }
+                ],
+                medium: [
+                    { q: "소요리문답 제1문에서 묻는 사람의 제일 되는 목적은?", a: ["하나님을 영화롭게 하고 영원토록 즐거워하는 것", "세상에서 성공하여 이름 널리 알리는 것", "도덕적으로 착하게 사는 것"], c: 0 },
+                    { q: "신약의 성례 두 가지는 무엇입니까?", a: ["세례와 성찬", "예배와 헌금", "말씀과 기도"], c: 0 }
+                ],
+                hard: [
+                    { q: "그리스도께서 우리의 구원자가 되심을 나타내는 정확한 표현은?", a: ["하나님의 영원한 아들로서 사람이 되신 한 위격", "위대한 도덕적 스승", "능력 있는 천사 중 하나"], c: 0 },
+                    { q: "유효한 부르심을 받은 자들이 금생에 얻는 유익 세 가지는?", a: ["의롭다 하심, 양자됨, 거룩하게 하심", "믿음, 소망, 사랑", "건강, 재물, 명예"], c: 0 }
+                ]
+            }
+        };
+
+        const colors = ['#FF5252', '#448AFF', '#69F0AE', '#E040FB'];
+        const bgColors = ['#FFEBEE', '#E3F2FD', '#E8F5E9', '#F3E5F5']; 
+        
+        const getTollColor = (level) => {
+            const levels = ['#9E9E9E', '#29B6F6', '#66BB6A', '#AB47BC', '#FFEB3B', '#212121'];
+            return levels[Math.min(level, 5)];
+        };
+
+        class Game {
+            constructor(playerNames, difficulties) {
+                this.players = [];
+                this.currentPlayerIndex = 0;
+                this.tiles = [];
+                this.mapState = JSON.parse(JSON.stringify(mapData));
+                this.isProcessing = false;
+                this.lastDiceDouble = false;
+                this.audioCtx = null;
+                this.allLandsOwned = false; 
+                
+                this.usedQuestions = {};
+                for (let cat in quizDatabase) {
+                    this.usedQuestions[cat] = {
+                        easy: new Set(),
+                        medium: new Set(),
+                        hard: new Set()
+                    };
+                }
+
+                playerNames.forEach((name, i) => {
+                    this.players.push({
+                        id: i,
+                        name: name,
+                        difficulty: difficulties[i],
+                        money: 2000, 
+                        pos: 0,
+                        color: colors[i],
+                        bgColor: bgColors[i],
+                        skipTurn: 0,
+                        isBankrupt: false,
+                        properties: []
+                    });
+                });
+            }
+
+            initAudio() {
+                if (!this.audioCtx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.audioCtx = new AudioContext();
+                }
+                if (this.audioCtx.state === 'suspended') {
+                    this.audioCtx.resume();
+                }
+            }
+
+            playCorrectSound() {
+                this.initAudio();
+                const now = this.audioCtx.currentTime;
+                const tones = [523.25, 659.25, 783.99]; 
+                
+                tones.forEach((freq, idx) => {
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.2);
+                    gain.gain.setValueAtTime(0.1, now + idx * 0.2);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.2 + 0.6);
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    osc.start(now + idx * 0.2);
+                    osc.stop(now + idx * 0.2 + 0.6);
+                });
+            }
+
+            playWrongSound() {
+                this.initAudio();
+                const now = this.audioCtx.currentTime;
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now); 
+                osc.frequency.linearRampToValueAtTime(100, now + 0.3); 
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+
+            playRattleSound() {
+                this.initAudio();
+                const now = this.audioCtx.currentTime;
+                for(let i=0; i<4; i++) {
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    const t = now + (Math.random() * 0.05); 
+                    osc.frequency.value = 800 + Math.random() * 1000;
+                    osc.type = 'triangle';
+                    gain.gain.setValueAtTime(0.1, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05); 
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.05);
+                }
+            }
+
+            playStepSound() {
+                this.initAudio();
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(500, this.audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(800, this.audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+                osc.start();
+                osc.stop(this.audioCtx.currentTime + 0.15);
+            }
+
+            triggerShake() {
+                const container = document.getElementById('game-container');
+                container.classList.remove('shake-effect'); 
+                void container.offsetWidth; 
+                container.classList.add('shake-effect');
+            }
+
+            triggerConfetti() {
+                const colors = ['#f44336', '#2196F3', '#FFEB3B', '#4CAF50', '#E91E63'];
+                for(let i=0; i<30; i++) {
+                    const conf = document.createElement('div');
+                    conf.className = 'confetti';
+                    conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    conf.style.left = '50%';
+                    conf.style.top = '50%';
+                    document.body.appendChild(conf);
+                    const angle = Math.random() * Math.PI * 2;
+                    const velocity = 50 + Math.random() * 100;
+                    const tx = Math.cos(angle) * velocity;
+                    const ty = Math.sin(angle) * velocity;
+                    conf.animate([
+                        { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                        { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }
+                    ], {
+                        duration: 800 + Math.random() * 400,
+                        easing: 'cubic-bezier(0, .9, .57, 1)',
+                    }).onfinish = () => conf.remove();
+                }
+            }
+
+            initBoard() {
+                const boardEl = document.getElementById('board');
+                const existingTiles = document.querySelectorAll('.tile');
+                existingTiles.forEach(t => t.remove());
+
+                const positions = [
+                    {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}, {r:1, c:5}, {r:1, c:6},
+                    {r:2, c:6}, {r:3, c:6}, {r:4, c:6}, {r:5, c:6},
+                    {r:6, c:6}, {r:6, c:5}, {r:6, c:4}, {r:6, c:3}, {r:6, c:2}, {r:6, c:1},
+                    {r:5, c:1}, {r:4, c:1}, {r:3, c:1}, {r:2, c:1}
+                ];
+
+                this.mapState.forEach((data, index) => {
+                    const el = document.createElement('div');
+                    let baseClass = `tile ${index % 5 === 0 ? 'corner' : ''} ${data.bgClass}`;
+                    if (data.type === 1) baseClass += ' unowned';
+                    else baseClass += ' special-tile';
+
+                    el.className = baseClass;
+                    el.style.gridRow = positions[index].r;
+                    el.style.gridColumn = positions[index].c;
+                    el.id = `tile-${index}`;
+                    
+                    let content = `<div class="tile-name">${data.name}</div>`;
+                    if (data.type === 1) content += `<div class="tile-price">${data.price}</div>`; 
+                    if (data.type === 4) content += `<div class="pot-amount">0</div>`;
+                    content += `<div class="tile-owner"></div>`;
+                    
+                    el.innerHTML = content;
+                    boardEl.appendChild(el);
+                    this.tiles.push(el);
+                    
+                    if (data.type === 1) {
+                        const priceEl = el.querySelector('.tile-price');
+                        priceEl.style.backgroundColor = getTollColor(0);
+                    }
+                });
+
+                this.createTokens();
+                this.drawDiceFaces(1, 1);
+                this.updateThemeColor();
+                this.updatePlayerPanel();
+                this.log("준비 완료! 가족들아 모여라~ 🎉");
+            }
+
+            createTokens() {
+                document.querySelectorAll('.player-token').forEach(el => el.remove());
+                const boardEl = document.getElementById('board');
+                this.players.forEach((p, idx) => {
+                    const token = document.createElement('div');
+                    token.id = `token-${p.id}`;
+                    token.className = 'player-token';
+                    token.style.backgroundColor = p.color;
+                    token.innerHTML = `<span class="token-name">${p.name}</span>`;
+                    this.updateTokenPosition(token, 0, idx);
+                    boardEl.appendChild(token);
+                });
+            }
+
+            updateTokenPosition(tokenEl, posIndex, playerIdx) {
+                const tile = document.getElementById(`tile-${posIndex}`);
+                if (!tile) return;
+                const offsetX = (playerIdx % 2) * 8 - 4; 
+                const offsetY = Math.floor(playerIdx / 2) * 8 - 4;
+                const top = tile.offsetTop + (tile.offsetHeight / 2) + offsetY;
+                const left = tile.offsetLeft + (tile.offsetWidth / 2) + offsetX;
+                tokenEl.style.top = `${top}px`;
+                tokenEl.style.left = `${left}px`;
+            }
+
+            updateThemeColor() {
+                const currentPlayer = this.players[this.currentPlayerIndex];
+                document.documentElement.style.setProperty('--current-turn-color', currentPlayer.color);
+                document.documentElement.style.setProperty('--current-turn-bg', currentPlayer.bgColor);
+            }
+
+            updatePlayerPanel() {
+                const panel = document.getElementById('player-panel');
+                panel.innerHTML = '';
+                this.players.forEach((p, idx) => {
+                    const card = document.createElement('div');
+                    let classes = `player-card`;
+                    if (p.isBankrupt) classes += ' bankrupt';
+                    else if (idx === this.currentPlayerIndex) classes += ' active';
+                    
+                    card.className = classes;
+                    card.style.borderTopColor = p.color;
+                    
+                    let moneyText = p.isBankrupt ? "파산" : `${p.money} 달란트`;
+                    let levelText = p.difficulty === 'easy' ? '하' : (p.difficulty === 'medium' ? '중' : '상');
+                    
+                    card.innerHTML = `
+                        <div class="player-name" style="color:${p.color}">${p.name}</div>
+                        <div class="player-money">${moneyText}</div>
+                        <div class="player-level-badge">난이도: ${levelText}</div>
+                        <div style="font-size:0.8rem">땅: ${p.properties.length}곳</div>
+                    `;
+                    panel.appendChild(card);
+                });
+                
+                const currentPlayer = this.players[this.currentPlayerIndex];
+                const msg = this.lastDiceDouble 
+                    ? `${currentPlayer.name} 차례! (더블!! 🎲)` 
+                    : `${currentPlayer.name} 차례!`;
+                
+                const ind = document.getElementById('turn-indicator');
+                ind.innerText = msg;
+                ind.style.color = "white";
+            }
+
+            log(msg) {
+                const logEl = document.getElementById('game-log');
+                logEl.innerHTML = `<div>${msg}</div>`;
+            }
+
+            drawDiceFaces(val1, val2) {
+                const getDots = (num) => {
+                    let dots = '';
+                    const pos = {
+                        1: [5], 2: [1, 9], 3: [1, 5, 9], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9], 6: [1, 3, 4, 6, 7, 9]
+                    };
+                    for(let i=1; i<=9; i++) {
+                        if (pos[num].includes(i)) dots += `<div class="dot" style="grid-area: ${Math.ceil(i/3)} / ${((i-1)%3)+1}"></div>`;
+                        else dots += `<div></div>`;
+                    }
+                    return dots;
+                };
+                document.getElementById('die1').innerHTML = getDots(val1);
+                document.getElementById('die2').innerHTML = getDots(val2);
+            }
+
+            async rollDice() {
+                if (this.isProcessing) return;
+                this.isProcessing = true;
+                this.initAudio();
+
+                const diceContainer = document.getElementById('dice-container');
+                diceContainer.classList.add('rolling');
+                
+                let d1=1, d2=1;
+                for(let i=0; i<12; i++) {
+                    d1 = Math.floor(Math.random() * 6) + 1;
+                    d2 = Math.floor(Math.random() * 6) + 1;
+                    this.drawDiceFaces(d1, d2);
+                    if(i % 3 === 0) this.playRattleSound(); 
+                    await new Promise(r => setTimeout(r, 80));
+                }
+                
+                diceContainer.classList.remove('rolling');
+                this.lastDiceDouble = (d1 === d2);
+                const total = d1 + d2;
+
+                const player = this.players[this.currentPlayerIndex];
+                if (player.skipTurn > 0) {
+                    if (this.lastDiceDouble) {
+                        player.skipTurn = 0;
+                        this.log(`✨ 더블! ${player.name} 귀성길 정체를 뚫었어!`);
+                        await this.movePlayer(player, total);
+                        return; 
+                    } else {
+                        player.skipTurn--;
+                        this.log(`${player.name} 차 막히는 중... (${player.skipTurn}번 남음)`);
+                        this.lastDiceDouble = false;
+                        this.checkNextTurn();
+                        return;
+                    }
+                }
+
+                this.log(`${player.name}: ${total}칸 이동! (${d1}, ${d2})`);
+                await this.movePlayer(player, total);
+            }
+
+            async movePlayer(player, steps) {
+                const tokenEl = document.getElementById(`token-${player.id}`);
+
+                for (let i = 0; i < steps; i++) {
+                    player.pos = (player.pos + 1) % BOARD_SIZE;
+                    if (player.pos === 0) {
+                        player.money += 500; 
+                        this.log("출발점 통과! 용돈 +500 달란트 💰");
+                        
+                        if (this.allLandsOwned) {
+                            this.endGame();
+                            return; 
+                        }
+                    }
+                    this.updateTokenPosition(tokenEl, player.pos, player.id);
+                    this.playStepSound();
+                    await new Promise(r => setTimeout(r, 300));
+                }
+                this.handleTile(player);
+            }
+
+            handleTile(player) {
+                const tileIdx = player.pos;
+                const tileData = this.mapState[tileIdx];
+
+                if (tileData.type === 1) {
+                    if (tileData.owner === undefined) {
+                        if (player.money >= tileData.price) {
+                            this.startQuiz(player, tileData, 'buy');
+                        } else {
+                            this.log("돈이 부족해서 살 수 없어 ㅠㅠ");
+                            this.checkNextTurn();
+                        }
+                    } else if (tileData.owner !== player.id) {
+                        const owner = this.players[tileData.owner];
+                        this.log(`${owner.name} 땅이야! 퀴즈 풀어볼까?`);
+                        this.startQuiz(player, tileData, 'toll', owner);
+                    } else {
+                        this.log("내 땅에 다시 왔어! 업그레이드 도전!");
+                        this.startQuiz(player, tileData, 'upgrade');
+                    }
+                } 
+                else if (tileData.type === 2) {
+                    this.handleGoldenKey(player);
+                }
+                else if (tileData.type === 3) {
+                    player.skipTurn = 1;
+                    this.lastDiceDouble = false;
+                    this.showMessage("차가 막혀요 🚗", "귀성길 정체 구간입니다. (1번 휴식)", () => this.checkNextTurn());
+                }
+                else if (tileData.type === 4) {
+                    this.handleSharing(player, tileData);
+                }
+                else if (tileData.type === 5) {
+                    this.showMessage("달맞이 휴식 🌕", "보름달을 보며 가족에게 덕담 한마디씩 해주세요! 💖", () => this.checkNextTurn());
+                }
+                else {
+                    this.checkNextTurn();
+                }
+                this.updatePlayerPanel();
+            }
+
+            handleSharing(player, tileData) {
+                if (!tileData.pot) tileData.pot = 0;
+
+                if (tileData.pot > 0) {
+                    const amount = tileData.pot;
+                    player.money += amount;
+                    tileData.pot = 0;
+                    this.updatePotDisplay(tileData.id, 0);
+                    this.showMessage("송편 나눔 획득! 🎁", `와! 모금함에 있던 ${amount}달란트를 받았어!`, () => this.checkNextTurn());
+                } else {
+                    const donation = 100;
+                    player.money -= donation;
+                    tileData.pot = donation;
+                    this.updatePotDisplay(tileData.id, donation);
+                    this.showMessage("송편 나눔 실천 💖", `가족들을 위해 ${donation}달란트를 모금함에 넣었어!`, () => this.checkNextTurn());
+                }
+            }
+
+            updatePotDisplay(tileId, amount) {
+                const tileEl = document.getElementById(`tile-${tileId}`);
+                const potEl = tileEl.querySelector('.pot-amount');
+                if (amount > 0) {
+                    potEl.innerText = amount;
+                    potEl.style.display = 'block';
+                } else {
+                    potEl.style.display = 'none';
+                }
+            }
+
+            handleGoldenKey(player) {
+                const keys = [
+                    { type: 'money', msg: "친척 어르신께 세배/인사드리고 용돈을 받았어! 🙇 (+200달란트)", val: 200 },
+                    { type: 'money', msg: "송편을 예쁘게 빚어서 칭찬받았어! 🥟 (+100달란트)", val: 100 },
+                    { type: 'money', msg: "전 부치다가 하나 주워 먹어서 벌금! 🥢 (-100달란트)", val: -100 },
+                    { type: 'move_unowned', msg: "아직 주인이 없는 빈 땅으로 순간이동! 🚀" },
+                    { type: 'move_wilderness', msg: "차가 너무 막혀! 귀성길 정체 구간으로 이동 🚗" }
+                ];
+                const pick = keys[Math.floor(Math.random() * keys.length)];
+                
+                if (pick.type === 'money') {
+                    player.money += pick.val;
+                    this.showMessage("보름달 소원 🌕", pick.msg, () => this.checkNextTurn());
+                } else if (pick.type === 'move_unowned') {
+                    let targetIdx = -1;
+                    for (let i = 1; i < BOARD_SIZE; i++) {
+                        const checkIdx = (player.pos + i) % BOARD_SIZE;
+                        if (this.mapState[checkIdx].type === 1 && this.mapState[checkIdx].owner === undefined) {
+                            targetIdx = checkIdx;
+                            break;
+                        }
+                    }
+                    
+                    if (targetIdx !== -1) {
+                        this.showMessage("보름달 소원 🌕", pick.msg, async () => {
+                            const tokenEl = document.getElementById(`token-${player.id}`);
+                            player.pos = targetIdx;
+                            this.updateTokenPosition(tokenEl, player.pos, player.id);
+                            this.playStepSound();
+                            this.handleTile(player);
+                        });
+                    } else {
+                        this.showMessage("보름달 소원 🌕", "빈 땅이 없네! 출발점으로 갈게!", async () => {
+                            const tokenEl = document.getElementById(`token-${player.id}`);
+                            player.pos = 0;
+                            player.money += 500; 
+                            this.updateTokenPosition(tokenEl, 0, player.id);
+                            this.playStepSound();
+                            this.checkNextTurn();
+                        });
+                    }
+                } else if (pick.type === 'move_wilderness') {
+                    this.showMessage("보름달 소원 🌕", pick.msg, async () => {
+                        const tokenEl = document.getElementById(`token-${player.id}`);
+                        player.pos = 5; 
+                        this.updateTokenPosition(tokenEl, player.pos, player.id);
+                        this.playStepSound();
+                        player.skipTurn = 1;
+                        this.lastDiceDouble = false;
+                        this.checkNextTurn();
+                    });
+                }
+            }
+
+            startQuiz(player, tileData, mode, owner = null) {
+                const modal = document.getElementById('quiz-modal');
+                const modalHeader = modal.querySelector('.modal-header');
+                modalHeader.style.backgroundColor = player.color;
+
+                const qCat = document.getElementById('quiz-category');
+                const qCtx = document.getElementById('quiz-context');
+                const qText = document.getElementById('quiz-question');
+                const qOpts = document.getElementById('quiz-options');
+                
+                const category = tileData.category;
+                const difficulty = player.difficulty;
+                const pool = quizDatabase[category][difficulty];
+                
+                let availableIndices = pool.map((_, i) => i).filter(i => !this.usedQuestions[category][difficulty].has(i));
+                
+                if (availableIndices.length === 0) {
+                    this.usedQuestions[category][difficulty].clear();
+                    availableIndices = pool.map((_, i) => i);
+                }
+
+                const randIdx = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+                this.usedQuestions[category][difficulty].add(randIdx);
+                const q = pool[randIdx];
+                const correctAnswer = q.a[q.c];
+
+                qCat.innerText = tileData.name;
+                qText.innerText = q.q;
+                
+                if (mode === 'buy') {
+                    qCtx.innerText = `[땅 사기] 퀴즈를 맞추면 내 땅이 돼! (비용: ${tileData.price})`;
+                } else if (mode === 'toll') {
+                    qCtx.innerText = `[통행료 내기] 맞추면 ${tileData.price}만 내고, 틀리면 2배야!`;
+                } else if (mode === 'upgrade') {
+                    qCtx.innerText = `[업그레이드] 맞추면 통행료가 1.5배로 올라가!`;
+                }
+
+                qOpts.innerHTML = '';
+                const answers = q.a.map((ans, i) => ({ text: ans, isCorrect: i === q.c }));
+                answers.sort(() => Math.random() - 0.5);
+
+                answers.forEach(ans => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-quiz';
+                    btn.innerText = ans.text;
+                    btn.onclick = () => {
+                        modal.style.display = 'none';
+                        this.resolveQuiz(player, tileData, mode, ans.isCorrect, owner, correctAnswer);
+                    };
+                    qOpts.appendChild(btn);
+                });
+
+                modal.style.display = 'flex';
+            }
+
+            resolveQuiz(player, tileData, mode, isCorrect, owner, correctAnswer) {
+                if (mode === 'buy') {
+                    if (isCorrect) {
+                        this.playCorrectSound();
+                        this.triggerConfetti();
+                        player.money -= tileData.price;
+                        tileData.owner = player.id;
+                        player.properties.push(tileData.id);
+                        
+                        const tileEl = document.getElementById(`tile-${tileData.id}`);
+                        tileEl.style.borderColor = player.color;
+                        tileEl.classList.remove('unowned');
+                        tileEl.classList.add('owned');
+                        
+                        this.showMessage("정답이야! 👏", `${tileData.name} 땅 주인이 되었어!`, () => this.checkAllLandsOwned());
+                    } else {
+                        this.playWrongSound();
+                        this.triggerShake();
+                        this.showMessage("땡! 아쉽다 😅", `틀렸어 ㅠㅠ 정답은 [${correctAnswer}]야.`, () => this.checkNextTurn());
+                    }
+                } else if (mode === 'toll') {
+                    let cost = tileData.price;
+                    if (isCorrect) {
+                        this.playCorrectSound();
+                        this.triggerConfetti();
+                        this.showMessage("정답! 👍", `잘했어! 통행료(${cost}달란트)만 낼게.`, () => {
+                            this.payToll(player, owner, cost);
+                        });
+                    } else {
+                        this.playWrongSound();
+                        this.triggerShake();
+                        cost *= 2;
+                        this.showMessage("땡! 😱", `틀렸어 ㅠㅠ 정답은 [${correctAnswer}]야. 벌금까지 2배(${cost}달란트)를 내야 해.`, () => {
+                            this.payToll(player, owner, cost);
+                        });
+                    }
+                } else if (mode === 'upgrade') {
+                    if (isCorrect) {
+                        this.playCorrectSound();
+                        this.triggerConfetti();
+                        tileData.price = Math.floor(tileData.price * 1.5);
+                        tileData.level = (tileData.level || 0) + 1; 
+                        
+                        const tileEl = document.getElementById(`tile-${tileData.id}`);
+                        const priceEl = tileEl.querySelector('.tile-price');
+                        priceEl.innerText = tileData.price;
+                        priceEl.style.backgroundColor = getTollColor(tileData.level);
+
+                        this.showMessage("업그레이드 성공! ✨", `이 땅의 통행료가 ${tileData.price}달란트로 올랐어!`, () => this.checkNextTurn());
+                    } else {
+                        this.playWrongSound();
+                        this.triggerShake();
+                        this.showMessage("아깝다! 😅", `틀렸어 ㅠㅠ 정답은 [${correctAnswer}]야. 업그레이드 실패!`, () => this.checkNextTurn());
+                    }
+                }
+            }
+
+            payToll(player, owner, amount) {
+                player.money -= amount;
+                owner.money += amount;
+                this.checkNextTurn();
+            }
+
+            checkAllLandsOwned() {
+                const totalBuyable = this.mapState.filter(t => t.type === 1).length;
+                const ownedCount = this.mapState.filter(t => t.type === 1 && t.owner !== undefined).length;
+
+                if (totalBuyable === ownedCount) {
+                    this.allLandsOwned = true;
+                    this.showMessage("마지막 라운드! 🚩", "모든 땅 주인이 정해졌어! 이제 누구든 출발점을 통과하면 게임이 끝나!", () => this.checkNextTurn());
+                } else {
+                    this.checkNextTurn();
+                }
+            }
+
+            endGame(winner) {
+                let msg = "🎉 와아! 게임 끝! 🎉\n\n";
+                if (winner) {
+                    msg += `최후의 생존자 [${winner.name}] 가족이 우승했어! 🏆`;
+                } else {
+                    let maxAssets = -99999;
+                    let bestPlayer = null;
+                    
+                    this.players.forEach(p => {
+                        if (p.isBankrupt) return;
+                        let assets = p.money;
+                        p.properties.forEach(tid => {
+                            assets += this.mapState[tid].price;
+                        });
+                        if (assets > maxAssets) {
+                            maxAssets = assets;
+                            bestPlayer = p;
+                        }
+                    });
+                    msg += `\n오늘의 1등은... [${bestPlayer.name}] 가족!! 축하해! 🏆`;
+                }
+                
+                alert(msg);
+                location.reload();
+            }
+
+            checkNextTurn() {
+                const player = this.players[this.currentPlayerIndex];
+                if (player.money < 0 && !player.isBankrupt) {
+                    player.isBankrupt = true;
+                    this.tiles.forEach((tileEl, idx) => {
+                        if (this.mapState[idx].owner === player.id) {
+                            this.mapState[idx].owner = undefined;
+                            tileEl.style.borderColor = "#ddd";
+                            tileEl.classList.remove('owned');
+                            tileEl.classList.add('unowned');
+                            tileEl.querySelector('.tile-owner').style.backgroundColor = 'transparent';
+                        }
+                    });
+                    
+                    const survivorCount = this.players.filter(p => !p.isBankrupt).length;
+                    if (survivorCount <= 1) {
+                        const winner = this.players.find(p => !p.isBankrupt);
+                        this.endGame(winner);
+                        return;
+                    }
+                    
+                    alert(`${player.name} 파산! ㅠㅠ`);
+                }
+
+                if (this.lastDiceDouble && !player.isBankrupt) {
+                    this.log("더블이다! 한 번 더 굴려!");
+                    this.isProcessing = false;
+                    this.updatePlayerPanel(); 
+                } else {
+                    let nextIdx = (this.currentPlayerIndex + 1) % this.players.length;
+                    while (this.players[nextIdx].isBankrupt) {
+                        nextIdx = (nextIdx + 1) % this.players.length;
+                    }
+                    this.currentPlayerIndex = nextIdx;
+                    this.isProcessing = false;
+                    this.updateThemeColor();
+                    this.updatePlayerPanel();
+                }
+            }
+
+            showMessage(title, msg, callback) {
+                const modal = document.getElementById('action-modal');
+                document.getElementById('action-title').innerText = title;
+                document.getElementById('action-msg').innerText = msg;
+                const btn = document.getElementById('btn-confirm');
+                btn.onclick = () => {
+                    modal.style.display = 'none';
+                    if (callback) callback();
+                };
+                modal.style.display = 'flex';
+            }
+        }
+
+        let game;
+        let selectedPlayerCount = 0;
+
+        function setupNames(count) {
+            selectedPlayerCount = count;
+            document.getElementById('setup-step-1').style.display = 'none';
+            document.getElementById('setup-step-2').style.display = 'block';
+            
+            const container = document.getElementById('name-inputs-container');
+            container.innerHTML = '';
+            for(let i=1; i<=count; i++) {
+                const group = document.createElement('div');
+                group.className = 'player-input-group';
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'name-input';
+                input.placeholder = `가족 ${i} 이름`;
+                input.id = `input-name-${i}`;
+                input.value = `가족 ${i}`;
+                
+                const select = document.createElement('select');
+                select.className = 'level-select';
+                select.id = `input-level-${i}`;
+                select.innerHTML = `
+                    <option value="easy">하 (유치-초3)</option>
+                    <option value="medium">중 (초4-초6)</option>
+                    <option value="hard">상 (중고등-성인)</option>
+                `;
+                
+                group.appendChild(input);
+                group.appendChild(select);
+                container.appendChild(group);
+            }
+        }
+
+        function startGameWithNames() {
+            const names = [];
+            const difficulties = [];
+            for(let i=1; i<=selectedPlayerCount; i++) {
+                const val = document.getElementById(`input-name-${i}`).value.trim();
+                const level = document.getElementById(`input-level-${i}`).value;
+                names.push(val || `가족 ${i}`);
+                difficulties.push(level);
+            }
+            
+            const setupScreen = document.getElementById('setup-screen');
+            const gameContainer = document.getElementById('game-container');
+
+            setupScreen.style.display = 'none';
+            gameContainer.style.display = 'flex';
+
+            game = new Game(names, difficulties);
+            game.initBoard();
+            
+            setTimeout(() => {
+                window.addEventListener('resize', () => {
+                    if(game) game.players.forEach(p => {
+                        const token = document.getElementById(`token-${p.id}`);
+                        if(token) game.updateTokenPosition(token, p.pos, p.id);
+                    });
+                });
+            }, 100);
+        }
+    </script>
+</body>
+</html>
+
+```
