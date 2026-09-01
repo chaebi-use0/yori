@@ -723,7 +723,19 @@
             }
 
             playAudio(fileName) {
-                const audio = new Audio(fileName);
+                // 오디오 캐시를 저장할 공간이 없으면 생성
+                if (!this.audioCache) {
+                    this.audioCache = {};
+                }
+                
+                // 해당 파일이 캐시에 없으면 한 번만 생성하여 저장 (Preload)
+                if (!this.audioCache[fileName]) {
+                    this.audioCache[fileName] = new Audio(fileName);
+                    this.audioCache[fileName].preload = 'auto'; // 미리 로드하여 지연 방지
+                }
+                
+                const audio = this.audioCache[fileName];
+                audio.currentTime = 0; // 재생 위치를 0초로 초기화하여 연속 재생 시 버벅거림 방지
                 audio.play().catch(err => console.log("오디오 에러:", err));
             }
 
