@@ -1067,7 +1067,7 @@
                             const tokenEl = document.getElementById(`token-${player.id}`);
                             player.pos = targetIdx;
                             this.updateTokenPosition(tokenEl, player.pos, player.id);
-                            this.playStepSound();
+                            this.playAudio('step.mp3'); // 수정된 부분
                             this.handleTile(player);
                         });
                     } else {
@@ -1076,7 +1076,7 @@
                             player.pos = 0;
                             player.money += 500; 
                             this.updateTokenPosition(tokenEl, 0, player.id);
-                            this.playStepSound();
+                            this.playAudio('step.mp3'); // 수정된 부분
                             this.checkNextTurn();
                         });
                     }
@@ -1085,7 +1085,7 @@
                         const tokenEl = document.getElementById(`token-${player.id}`);
                         player.pos = 5; 
                         this.updateTokenPosition(tokenEl, player.pos, player.id);
-                        this.playStepSound();
+                        this.playAudio('step.mp3'); // 수정된 부분
                         player.skipTurn = 1;
                         this.lastDiceDouble = false;
                         this.checkNextTurn();
