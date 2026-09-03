@@ -1021,13 +1021,13 @@
                     player.money += amount;
                     tileData.pot = 0;
                     this.updatePotDisplay(tileData.id, 0);
-                    this.showMessage("용돈 접수처 획득! 🎁", `와! 모금함에 있던 ${amount}달란트를 받았어!`, () => this.checkNextTurn());
+                    this.showMessage("용돈 접수처 획득! 🎁", `와! 모여있던 용돈 ${amount}달란트를 받았어!`, () => this.checkNextTurn());
                 } else {
                     const donation = 100;
                     player.money -= donation;
                     tileData.pot = donation;
                     this.updatePotDisplay(tileData.id, donation);
-                    this.showMessage("용돈 접수처 실천 💖", `가족들을 위해 ${donation}달란트를 모금함에 넣었어!`, () => this.checkNextTurn());
+                    this.showMessage("용돈 접수처 실천 💖", `가족들을 위해 ${donation}달란트를 용돈함에 넣었어!`, () => this.checkNextTurn());
                 }
             }
 
